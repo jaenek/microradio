@@ -1,10 +1,9 @@
-#include <Arduino.h>
 #include <NTPClient.h>
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 #include <AudioFileSourceHTTPStream.h>
 #include <AudioGeneratorMP3.h>
-#include <AudioOutputI2S.h>
+#include <AudioOutputI2SNoDAC.h>
 #include <Wire.h>
 #include "SSD1306Wire.h"
 
@@ -22,15 +21,62 @@ NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", 7200);
 const char* ssid = STASSID;
 const char* password = STAPSK;
 
-// Audio setup
-const char *URL="http://tytus.dom:8000/";
-
-AudioGeneratorMP3 *mp3;
-AudioFileSourceHTTPStream *stream;
-AudioOutputI2S *out;
-
 // SSD1306 128x32 setup
 SSD1306Wire display(0x3c, D3, D5, GEOMETRY_128_32);
+
+// Player setup
+const char *URL="http://tytus.dom:8123/";
+
+class Player
+{
+private:
+	AudioFileSourceHTTPStream *stream = nullptr;
+	AudioOutputI2SNoDAC *out = nullptr;
+	AudioGeneratorMP3 *mp3 = nullptr;
+	int retryms;
+
+	void play() {
+		stream = new AudioFileSourceHTTPStream(URL);
+		if (!stream->isOpen()) {
+			stream->close();
+			delete stream;
+			stream = nullptr;
+			return;
+		}
+		mp3 = new AudioGeneratorMP3();
+		mp3->begin(stream, out);
+	}
+
+	void clear() {
+		mp3->stop();
+		stream->close();
+		delete mp3;
+		delete stream;
+		mp3 = nullptr;
+	}
+
+public:
+	Player()
+	{
+		out = new AudioOutputI2SNoDAC();
+		out->SetGain(0.3);
+		this->play();
+		retryms = millis();
+	}
+
+	void loop()
+	{
+	 	if (mp3 != nullptr){
+			if (!mp3->loop()) {
+				this->clear();
+				this->play();
+			}
+		} else if (millis() - retryms > 1000) {
+			this->play();
+			retryms = millis();
+		}
+	}
+} *player;
 
 void printtime()
 {
@@ -60,25 +106,21 @@ void setup()
 
 	WiFi.begin(ssid, password);
 
-	Serial.println("Connecting to WiFi");
+	Serial.printf("Connecting to %s\n", STASSID);
 
 	while (WiFi.status() != WL_CONNECTED) {
 		Serial.print(".");
 		delay(1000);
 	}
-	Serial.printf("\rConnected to %s", STASSID);
+	Serial.printf("\rConnected to %s\n", STASSID);
 
 	// Connect to NTP server
 	timeClient.begin();
 	timeClient.update();
 	printtime();
 
-	stream = new AudioFileSourceHTTPStream(URL);
-	out = new AudioOutputI2S();
-	mp3 = new AudioGeneratorMP3();
-	mp3->begin(stream, out);
+	player = new Player();
 }
-
 
 void loop()
 {
@@ -89,7 +131,5 @@ void loop()
 		lastms = millis();
 	}
 
-	if (!mp3->loop()) {
-		mp3->stop();
-	}
+	player->loop();
 }
