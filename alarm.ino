@@ -5,7 +5,7 @@
 #include <AudioGeneratorMP3.h>
 #include <AudioOutputI2SNoDAC.h>
 #include <Wire.h>
-#include "SSD1306Wire.h"
+#include <SSD1306Wire.h>
 
 // NTP setup
 WiFiUDP ntpUDP;
