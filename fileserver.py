@@ -8,7 +8,7 @@ import subprocess
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-PORT = 8000
+PORT = 8123
 
 def random_song():
     """Pick a random file with .flac or .mp3 extension from current path."""
@@ -41,41 +41,24 @@ class FileStreamingHandler(BaseHTTPRequestHandler):
 
         self.log_message('"SOX {}"'.format(filename))
 
-        ph = subprocess.Popen(
+        return subprocess.Popen(
             args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
 
-        out, err = ph.communicate()
-        status = ph.returncode
-
-        if status == 0:
-            return out
-
-        self.log_message('"SOX" {}'.format(err.decode('utf-8')))
-        return None
-
     def do_GET(self):
-        encoded = self.reencode_audio(random_song())
-        if encoded is None:
-            self.send_response(404)
-            return
-
-        f = io.BytesIO()
-        f.write(encoded)
-        f.seek(0)
-
         self.send_response(200)
         self.send_header('Content-type', 'audio/mpeg')
-        self.send_header('Content-length', str(len(encoded)))
         self.end_headers()
 
-        if f:
+        song = self.reencode_audio(random_song())
+        if song.stdout:
             try:
-                shutil.copyfileobj(f, self.wfile)
+                shutil.copyfileobj(song.stdout, self.wfile)
             except ClientAbortedException:
                 self.log_message('"CLOSED %s"', self.path)
-            finally:
-                f.close()
+        else:
+            self.log_message('"SOX {}"'.format(song.stderr.read))
+        song.kill()
 
     def finish(self):
         # if the other end breaks the connection, these operations will fail
