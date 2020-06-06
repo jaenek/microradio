@@ -81,12 +81,7 @@ public:
 void printtime()
 {
 	display.clear();
-	char time[10];
-	sprintf(time, "%02d:%02d",
-		timeClient.getHours(),
-		timeClient.getMinutes()
-	);
-	display.drawString(64, 16, String(time));
+	display.drawString(64, 16, timeClient.getFormattedTime().substring(0,5));
 	display.display();
 }
 
