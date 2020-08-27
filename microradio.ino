@@ -53,11 +53,11 @@ void StatusCallback(void *cbData, int code, const char *string) {
 }
 
 //This function redirects user to desired url
-void redirect(ESP8266WebServer *serv, String url) {
+void redirect(String url) {
 	Serial.println("Redirecting to " + url);
-	serv->sendHeader("Location", url, true);
-	serv->send(302, "text/plain", ""); // Empty content inhibits Content-length header so we have to close the socket ourselves.
-	serv->client().stop(); // Stop is needed because we sent no content length
+	server.sendHeader("Location", url, true);
+	server.send(302, "text/plain", ""); // Empty content inhibits Content-length header so we have to close the socket ourselves.
+	server.client().stop(); // Stop is needed because we sent no content length
 }
 
 void wifisetup() {
@@ -116,7 +116,6 @@ void loadwifisetup() {
 
 void setup() {
 	Serial.begin(115200);
-	delay(1000);
 
 	LittleFS.begin();
 
@@ -136,7 +135,6 @@ void setup() {
 
 	server.begin();
 
-	// Try forever
 	while (WiFi.status() != WL_CONNECTED) {
 		server.handleClient();
 	}
@@ -147,6 +145,11 @@ void setup() {
 	WiFi.disconnect();
 	WiFi.mode(WIFI_STA);
 	WiFi.begin(ssid, pass);
+
+	while (WiFi.status() != WL_CONNECTED) {
+		delay(500);
+	}
+	Serial.println("Start playing");
 
 	audioLogger = &Serial;
 	file = new AudioFileSourceHTTPStream(URL);
@@ -160,8 +163,9 @@ void setup() {
 	mp3->begin(buff, out);
 
 	server.on("/control", []{ server.send(200, "text/html", "control"); });
-	server.onNotFound([]{ redirect(&server, "http://" + WiFi.localIP().toString() + "/control"); });
+	server.onNotFound([]{ redirect("http://" + WiFi.localIP().toString() + "/control"); });
 	server.begin();
+	Serial.println("Serving control panel at " + WiFi.localIP().toString() + "/control");
 }
 
 void loop() {
