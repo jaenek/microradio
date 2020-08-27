@@ -10,11 +10,6 @@
 // Randomly picked URL
 const char *URL="http://stream.rcs.revma.com/ypqt40u0x1zuv";
 
-AudioGeneratorMP3 *mp3;
-AudioFileSourceHTTPStream *file;
-AudioFileSourceSPIRAMBuffer *buff;
-AudioOutputI2S *out;
-
 // WiFi config
 String configfile = "/wifisetup";
 String ssid = "";
@@ -51,6 +46,62 @@ void StatusCallback(void *cbData, int code, const char *string) {
 		lastCode = code;
 	}
 }
+
+class Player
+{
+private:
+	AudioFileSourceHTTPStream *stream = nullptr;
+	AudioFileSourceSPIRAMBuffer *buff = nullptr;
+	AudioGeneratorMP3 *mp3 = nullptr;
+	AudioOutputI2S *out = nullptr;
+	int retryms;
+
+public:
+	Player() {
+		out = new AudioOutputI2S();
+		out->SetGain(0.3);
+		retryms = millis();
+	}
+
+	void play() {
+		audioLogger = &Serial;
+
+		stream = new AudioFileSourceHTTPStream(URL);
+		stream->RegisterMetadataCB(MDCallback, (void*)"ID3");
+
+		stream = new AudioFileSourceHTTPStream(URL);
+		if (!stream->isOpen()) {
+			stream->close();
+			delete stream;
+			stream = nullptr;
+			return;
+		}
+
+		buff = new AudioFileSourceSPIRAMBuffer(stream, 4, 128*1024);
+		buff->RegisterStatusCB(StatusCallback, (void*)"buffer");
+
+		out = new AudioOutputI2S();
+
+		mp3 = new AudioGeneratorMP3();
+		mp3->RegisterStatusCB(StatusCallback, (void*)"mp3");
+		mp3->begin(buff, out);
+	}
+
+	void stop() {
+		mp3->stop();
+		stream->close();
+		delete mp3;
+		delete buff;
+		delete stream;
+		mp3 = nullptr;
+	}
+
+	void loop() {
+		if (mp3 != nullptr){
+			mp3->loop();
+		}
+	}
+} *player;
 
 //This function redirects user to desired url
 void redirect(String url) {
@@ -151,18 +202,11 @@ void setup() {
 	}
 	Serial.println("Start playing");
 
-	audioLogger = &Serial;
-	file = new AudioFileSourceHTTPStream(URL);
-	file->RegisterMetadataCB(MDCallback, (void*)"ID3");
-	// Initialize 23LC1024 SPI RAM buffer with chip select ion GPIO4 and ram size of 128KByte
-	buff = new AudioFileSourceSPIRAMBuffer(file, 4, 128*1024);
-	buff->RegisterStatusCB(StatusCallback, (void*)"buffer");
-	out = new AudioOutputI2S();
-	mp3 = new AudioGeneratorMP3();
-	mp3->RegisterStatusCB(StatusCallback, (void*)"mp3");
-	mp3->begin(buff, out);
+	player = new Player();
 
 	server.on("/control", []{ server.send(200, "text/html", "control"); });
+	server.on("/play", []{ player->play(); server.send(200, "text/html", "control"); });
+	server.on("/stop", []{ player->stop(); server.send(200, "text/html", "control"); });
 	server.onNotFound([]{ redirect("http://" + WiFi.localIP().toString() + "/control"); });
 	server.begin();
 	Serial.println("Serving control panel at " + WiFi.localIP().toString() + "/control");
@@ -171,19 +215,5 @@ void setup() {
 void loop() {
 	server.handleClient();
 
-	static int lastms = 0;
-	if (mp3->isRunning()) {
-		if (millis()-lastms > 1000) {
-			lastms = millis();
-			Serial.printf("Running for %d ms...\n", lastms);
-			Serial.flush();
-		 }
-		if (!mp3->loop()) mp3->stop();
-	} else {
-		if (millis()-lastms > 1000) {
-			lastms = millis();
-			Serial.printf("MP3 done\n");
-			Serial.flush();
-		}
-	}
+	player->loop();
 }
