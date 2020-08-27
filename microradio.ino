@@ -128,7 +128,7 @@ void setup() {
 
 	server.on("/setup", HTTP_GET, wifisetup);
 	server.on("/setup", HTTP_POST, savewifisetup);
-	server.onNotFound([]{ redirect(&server, "http://192.168.1.1/setup"); });
+	server.onNotFound([]{ redirect("http://192.168.1.1/setup"); });
 
 	Serial.println("Connecting to WiFi");
 	loadwifisetup();
