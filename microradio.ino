@@ -55,15 +55,18 @@ private:
 	AudioGeneratorMP3 *mp3 = nullptr;
 	AudioOutputI2S *out = nullptr;
 	int retryms;
+	int volume;
 
 public:
 	Player() {
-		out = new AudioOutputI2S();
-		out->SetGain(0.3);
 		retryms = millis();
+		this->play();
 	}
 
 	void play() {
+		if (mp3 != nullptr)
+			return;
+
 		audioLogger = &Serial;
 
 		stream = new AudioFileSourceHTTPStream(URL);
@@ -81,6 +84,8 @@ public:
 		buff->RegisterStatusCB(StatusCallback, (void*)"buffer");
 
 		out = new AudioOutputI2S();
+		volume = 100;
+		this->volupdate();
 
 		mp3 = new AudioGeneratorMP3();
 		mp3->RegisterStatusCB(StatusCallback, (void*)"mp3");
@@ -93,7 +98,26 @@ public:
 		delete mp3;
 		delete buff;
 		delete stream;
+		delete out;
 		mp3 = nullptr;
+	}
+
+	void volupdate() {
+		out->SetGain((float)volume/100);
+	}
+
+	void volup() {
+		volume += 10;
+		if (volume > 100)
+			volume = 100;
+		this->volupdate();
+	}
+
+	void voldown() {
+		volume -= 10;
+		if (volume < 0)
+			volume = 0;
+		this->volupdate();
 	}
 
 	void loop() {
@@ -204,12 +228,15 @@ void setup() {
 
 	player = new Player();
 
+	String url = "http://" + WiFi.localIP().toString() + "/control";
 	server.on("/control", []{ server.send(200, "text/html", "control"); });
-	server.on("/play", []{ player->play(); server.send(200, "text/html", "control"); });
-	server.on("/stop", []{ player->stop(); server.send(200, "text/html", "control"); });
-	server.onNotFound([]{ redirect("http://" + WiFi.localIP().toString() + "/control"); });
+	server.on("/play", []{ player->play(); server.send(200, "text/html", "play"); });
+	server.on("/stop", []{ player->stop(); server.send(200, "text/html", "stop"); });
+	server.on("/volup", []{ player->volup(); server.send(200, "text/html", "volup"); });
+	server.on("/voldown", []{ player->voldown(); server.send(200, "text/html", "voldown"); });
+	server.onNotFound([url]{ redirect(url); });
 	server.begin();
-	Serial.println("Serving control panel at " + WiFi.localIP().toString() + "/control");
+	Serial.println("Serving control panel at " + url);
 }
 
 void loop() {
