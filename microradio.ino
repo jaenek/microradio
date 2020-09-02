@@ -7,8 +7,8 @@
 #include <AudioGeneratorMP3.h>
 #include <AudioOutputI2S.h>
 
-// Randomly picked URL
-const char *URL="http://stream.rcs.revma.com/ypqt40u0x1zuv";
+// Player config
+const int MAX_STATIONS = 10;
 
 // WiFi config
 String configfile = "/wifisetup";
@@ -47,6 +47,16 @@ void StatusCallback(void *cbData, int code, const char *string) {
 	}
 }
 
+struct Station {
+	String name;
+	String url;
+
+	Station(String name, String url) {
+		this->name = name;
+		this->url = url;
+	}
+};
+
 class Player
 {
 private:
@@ -56,24 +66,26 @@ private:
 	AudioOutputI2S *out = nullptr;
 	int retryms;
 	int volume;
+	Station *stations[MAX_STATIONS] = {};
+	int currentstationid;
 
-public:
-	Player() {
-		retryms = millis();
-		this->play();
-	}
-
-	void play() {
-		if (mp3 != nullptr)
+	void play(Station *station) {
+		if (station == nullptr) {
+			Serial.println("Error: Station doesn't exist");
 			return;
+		}
+
+		if (mp3 != nullptr)
+			this->stop();
 
 		audioLogger = &Serial;
 
-		stream = new AudioFileSourceHTTPStream(URL);
+		Serial.println("Opening " + station->url);
+		stream = new AudioFileSourceHTTPStream(station->url.c_str());
 		stream->RegisterMetadataCB(MDCallback, (void*)"ID3");
 
-		stream = new AudioFileSourceHTTPStream(URL);
 		if (!stream->isOpen()) {
+			Serial.println("Error: Couldn't open the stream");
 			stream->close();
 			delete stream;
 			stream = nullptr;
@@ -90,6 +102,65 @@ public:
 		mp3 = new AudioGeneratorMP3();
 		mp3->RegisterStatusCB(StatusCallback, (void*)"mp3");
 		mp3->begin(buff, out);
+	}
+
+	void loadstations() {
+		Serial.println("Loading stations");
+		String filepath = "/stations";
+		if (LittleFS.exists(filepath)) {
+			File file = LittleFS.open(filepath, "r");
+
+			int id = 0;
+			String buf;
+			String name;
+			while (file.available()) {
+				char c = file.read();
+				if (c == '\t') {
+					name = buf;
+					buf = "";
+					continue;
+				}
+
+				if (c == '\n') {
+					stations[id] = new Station(name, buf);
+					Serial.println(String(id) + ". " + name + "; " + buf);
+					id++;
+					if (id == MAX_STATIONS) {
+						Serial.println("Maximum limit of stations reached!");
+						break;
+					}
+					buf = "";
+					continue;
+				}
+
+				buf += c;
+			}
+
+			file.close();
+		} else {
+			Serial.println("Error: no /stations file.");
+		}
+	}
+
+	void savestations() {
+		Serial.println("Saving stations");
+		File file = LittleFS.open("/stations", "w");
+		for (int id = 0; id < MAX_STATIONS; id++) {
+			if (stations[id] != nullptr) {
+				file.print(stations[id]->name + ";" + stations[id]->url + "\n");
+				delete stations[id];
+				stations[id] = nullptr;
+			}
+		}
+		file.close();
+	}
+
+public:
+	Player() {
+		retryms = millis();
+		loadstations();
+		currentstationid = 0;
+		this->play(stations[currentstationid]);
 	}
 
 	void stop() {
@@ -118,6 +189,26 @@ public:
 		if (volume < 0)
 			volume = 0;
 		this->volupdate();
+	}
+
+	void newstation(String name, String url) {
+		Serial.println("Adding station: " + name + "; " + url);
+		String filepath = "/stations";
+		File file;
+		if (LittleFS.exists(filepath)) {
+			file = LittleFS.open(filepath, "a");
+		} else {
+			file = LittleFS.open(filepath, "w");
+		}
+		file.print(name + "\t" + url + "\n");
+		file.close();
+		loadstations();
+	}
+
+	void setstation(int id) {
+		Serial.println("Setting station: " + String(id));
+		currentstationid = id;
+		this->play(stations[currentstationid]);
 	}
 
 	void loop() {
@@ -230,7 +321,8 @@ void setup() {
 
 	String url = "http://" + WiFi.localIP().toString() + "/control";
 	server.on("/control", []{ server.send(200, "text/html", "control"); });
-	server.on("/play", []{ player->play(); server.send(200, "text/html", "play"); });
+	server.on("/play", []{ player->setstation(server.arg("id").toInt()); server.send(200, "text/html", "station set"); });
+	server.on("/add", []{ player->newstation(server.arg("name"), server.arg("url")); server.send(200, "text/html", "station added"); });
 	server.on("/stop", []{ player->stop(); server.send(200, "text/html", "stop"); });
 	server.on("/volup", []{ player->volup(); server.send(200, "text/html", "volup"); });
 	server.on("/voldown", []{ player->voldown(); server.send(200, "text/html", "voldown"); });
