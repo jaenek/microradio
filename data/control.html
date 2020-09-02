@@ -1,0 +1,31 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=2.0">
+</head>
+<body>
+<h2>Microradio</h2>
+
+<form action="/play" method="POST">
+  <input type="text" name="id" value="0">
+  <input type="submit" value="play">
+</form>
+<form action="/stop" method="POST">
+  <input type="submit" value="stop">
+</form>
+<form action="/add" method="POST">
+  <label for="name">name:</label>
+  <input type="text" name="name" placeholder="radio">
+  <label for="url">link:</label>
+  <input type="text" name="url" placeholder="http://radiointernetowe.pl">
+  <input type="submit" value="add">
+</form>
+<form action="/volup" method="POST">
+  <input type="submit" value="vol+">
+</form>
+<form action="/voldown" method="POST">
+  <input type="submit" value="vol-">
+</form>
+
+</body>
+</html>

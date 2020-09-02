@@ -226,9 +226,7 @@ void redirect(String url) {
 	server.client().stop(); // Stop is needed because we sent no content length
 }
 
-void wifisetup() {
-	// read wifisetup.html form
-	String filepath = "/wifisetup.html";
+void sendfile(String filepath) {
 	if (LittleFS.exists(filepath)) {
 		File file = LittleFS.open(filepath, "r");
 		server.streamFile(file, "text/html");
@@ -292,7 +290,7 @@ void setup() {
 	Serial.print("AP IP address: ");
 	Serial.println(WiFi.softAPIP());
 
-	server.on("/setup", HTTP_GET, wifisetup);
+	server.on("/setup", HTTP_GET, []{ sendfile("/wifisetup.html"); });
 	server.on("/setup", HTTP_POST, savewifisetup);
 	server.onNotFound([]{ redirect("http://192.168.1.1/setup"); });
 
@@ -319,16 +317,16 @@ void setup() {
 
 	player = new Player();
 
-	String url = "http://" + WiFi.localIP().toString() + "/control";
-	server.on("/control", []{ server.send(200, "text/html", "control"); });
-	server.on("/play", []{ player->setstation(server.arg("id").toInt()); server.send(200, "text/html", "station set"); });
-	server.on("/add", []{ player->newstation(server.arg("name"), server.arg("url")); server.send(200, "text/html", "station added"); });
-	server.on("/stop", []{ player->stop(); server.send(200, "text/html", "stop"); });
-	server.on("/volup", []{ player->volup(); server.send(200, "text/html", "volup"); });
-	server.on("/voldown", []{ player->voldown(); server.send(200, "text/html", "voldown"); });
-	server.onNotFound([url]{ redirect(url); });
+	String index = "http://" + WiFi.localIP().toString() + "/control";
+	server.on("/control", []{ sendfile("/control.html"); });
+	server.on("/play", [index]{ player->setstation(server.arg("id").toInt()); redirect(index); });
+	server.on("/add", [index]{ player->newstation(server.arg("name"), server.arg("url")); redirect(index); });
+	server.on("/stop", [index]{ player->stop(); redirect(index); });
+	server.on("/volup", [index]{ player->volup(); redirect(index); });
+	server.on("/voldown", [index]{ player->voldown(); redirect(index); });
+	server.onNotFound([index]{ redirect(index); });
 	server.begin();
-	Serial.println("Serving control panel at " + url);
+	Serial.println("Serving control panel at " + index);
 }
 
 void loop() {
