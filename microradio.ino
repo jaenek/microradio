@@ -211,6 +211,17 @@ public:
 		this->play(stations[currentstationid]);
 	}
 
+	void liststations() {
+		String selectelement = "<select name=\"id\">";
+		for (int id = 0; id < MAX_STATIONS; id++) {
+			if (stations[id] != nullptr) {
+				selectelement += "<option value=\"" + String(id) + "\">" + stations[id]->name + "</option>\n";
+			}
+		}
+		selectelement += "</select>";
+		server.send(200, "text/html", selectelement);
+	}
+
 	void loop() {
 		if (mp3 != nullptr){
 			mp3->loop();
@@ -319,7 +330,8 @@ void setup() {
 
 	String index = "http://" + WiFi.localIP().toString() + "/control";
 	server.on("/control", []{ sendfile("/control.html"); });
-	server.on("/play", [index]{ player->setstation(server.arg("id").toInt()); redirect(index); });
+	server.on("/list", []{ player->liststations(); });
+	server.on("/select", [index]{ player->setstation(server.arg("id").toInt()); redirect(index); });
 	server.on("/add", [index]{ player->newstation(server.arg("name"), server.arg("url")); redirect(index); });
 	server.on("/stop", [index]{ player->stop(); redirect(index); });
 	server.on("/volup", [index]{ player->volup(); redirect(index); });
