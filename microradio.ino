@@ -341,15 +341,15 @@ void setup() {
 
 	player = new Player();
 
-	String index = "http://" + WiFi.localIP().toString() + "/control";
-	server.on("/control", []{ servefile("/control.html"); });
+	String index = "http://" + WiFi.localIP().toString() + "/control.html";
+	server.on("/", []{ redirect("control.html"); });
 	server.on("/list", []{ player->liststations(); });
-	server.on("/select", [index]{ player->setstation(server.arg("id").toInt()); redirect(index); });
+	server.on("/select", [index]{  redirect(index); player->setstation(server.arg("id").toInt()); });
 	server.on("/delete", [index]{ player->deletestation(server.arg("id").toInt()); redirect(index); });
 	server.on("/add", [index]{ player->addstation(server.arg("name"), server.arg("url")); redirect(index); });
-	server.on("/stop", [index]{ player->stop(); redirect(index); });
-	server.on("/volup", [index]{ player->volup(); redirect(index); });
-	server.on("/voldown", [index]{ player->voldown(); redirect(index); });
+	server.on("/stop", [index]{ redirect(index); player->stop(); });
+	server.on("/volup", [index]{ redirect(index); player->volup(); });
+	server.on("/voldown", [index]{ redirect(index); player->voldown(); });
 	server.onNotFound([index]{ if (LittleFS.exists(server.uri())) servefile(server.uri()); else redirect(index); });
 	server.begin();
 	Serial.println("Serving control panel at " + index);
