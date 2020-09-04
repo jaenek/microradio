@@ -191,7 +191,7 @@ public:
 		this->volupdate();
 	}
 
-	void newstation(String name, String url) {
+	void addstation(String name, String url) {
 		Serial.println("Adding station: " + name + "; " + url);
 		String filepath = "/stations";
 		File file;
@@ -203,6 +203,15 @@ public:
 		file.print(name + "\t" + url + "\n");
 		file.close();
 		loadstations();
+	}
+
+	void deletestation(int id) {
+		if (stations[id] != nullptr) {
+			delete stations[id];
+			stations[id] = nullptr;
+			savestations();
+			loadstations();
+		}
 	}
 
 	void setstation(int id) {
@@ -336,7 +345,8 @@ void setup() {
 	server.on("/control", []{ servefile("/control.html"); });
 	server.on("/list", []{ player->liststations(); });
 	server.on("/select", [index]{ player->setstation(server.arg("id").toInt()); redirect(index); });
-	server.on("/add", [index]{ player->newstation(server.arg("name"), server.arg("url")); redirect(index); });
+	server.on("/delete", [index]{ player->deletestation(server.arg("id").toInt()); redirect(index); });
+	server.on("/add", [index]{ player->addstation(server.arg("name"), server.arg("url")); redirect(index); });
 	server.on("/stop", [index]{ player->stop(); redirect(index); });
 	server.on("/volup", [index]{ player->volup(); redirect(index); });
 	server.on("/voldown", [index]{ player->voldown(); redirect(index); });

@@ -12,7 +12,7 @@
 </div>
 
 <div class="container" id="selection">
-<form action="/select" method="POST">
+<form method="POST">
 </form>
 </div>
 
@@ -46,7 +46,7 @@
 fetch("/list")
 .then(response => response.text())
 .then(text => {
-	document.getElementById("selection").firstElementChild.innerHTML = text + "<input type=\"submit\" value=\"▶\">"
+	document.getElementById("selection").firstElementChild.innerHTML = text + "<input type=\"submit\" value=\"▶\" formaction=\"/select\">" + "<input type=\"submit\" value=\"❌\" formaction=\"/delete\">"
 })
 </script>
 
