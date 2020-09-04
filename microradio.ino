@@ -237,10 +237,14 @@ void redirect(String url) {
 	server.client().stop(); // Stop is needed because we sent no content length
 }
 
-void sendfile(String filepath) {
+void servefile(String filepath) {
 	if (LittleFS.exists(filepath)) {
 		File file = LittleFS.open(filepath, "r");
-		server.streamFile(file, "text/html");
+		String mime = "";
+		if (filepath.endsWith(".css")) mime = "text/css";
+		else if (filepath.endsWith(".js")) mime = "text/javascript";
+		else mime = "text/html";
+		server.streamFile(file, mime);
 		file.close();
 	} else {
 		String err = "Error: " + filepath + " not found, please upload html files to esp.";
@@ -301,7 +305,7 @@ void setup() {
 	Serial.print("AP IP address: ");
 	Serial.println(WiFi.softAPIP());
 
-	server.on("/setup", HTTP_GET, []{ sendfile("/wifisetup.html"); });
+	server.on("/setup", HTTP_GET, []{ servefile("/wifisetup.html"); });
 	server.on("/setup", HTTP_POST, savewifisetup);
 	server.onNotFound([]{ redirect("http://192.168.1.1/setup"); });
 
@@ -329,14 +333,14 @@ void setup() {
 	player = new Player();
 
 	String index = "http://" + WiFi.localIP().toString() + "/control";
-	server.on("/control", []{ sendfile("/control.html"); });
+	server.on("/control", []{ servefile("/control.html"); });
 	server.on("/list", []{ player->liststations(); });
 	server.on("/select", [index]{ player->setstation(server.arg("id").toInt()); redirect(index); });
 	server.on("/add", [index]{ player->newstation(server.arg("name"), server.arg("url")); redirect(index); });
 	server.on("/stop", [index]{ player->stop(); redirect(index); });
 	server.on("/volup", [index]{ player->volup(); redirect(index); });
 	server.on("/voldown", [index]{ player->voldown(); redirect(index); });
-	server.onNotFound([index]{ redirect(index); });
+	server.onNotFound([index]{ if (LittleFS.exists(server.uri())) servefile(server.uri()); else redirect(index); });
 	server.begin();
 	Serial.println("Serving control panel at " + index);
 }

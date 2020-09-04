@@ -1,38 +1,54 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=2.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles.css">
+  <title>📻 Microradio</title>
 </head>
 <body>
-<h2>Microradio</h2>
 
-<form id="selection" action="/select" method="POST">
+<div class="container" id="status">
+<h2>Microradio</h2>
+</div>
+
+<div class="container" id="selection">
+<form action="/select" method="POST">
 </form>
+</div>
+
+<div class="container" id="control">
 <form action="/stop" method="POST">
-  <input type="submit" value="stop">
+  <input type="submit" value="⬛">
 </form>
-<form action="/add" method="POST">
-  <label for="name">name:</label>
-  <input type="text" name="name" placeholder="radio">
-  <label for="url">link:</label>
-  <input type="text" name="url" placeholder="http://radiointernetowe.net/live128.mp3">
-  <input type="submit" value="add">
-</form>
+
 <form action="/volup" method="POST">
-  <input type="submit" value="vol+">
+  <input type="submit" value="🔊">
 </form>
+
 <form action="/voldown" method="POST">
-  <input type="submit" value="vol-">
+  <input type="submit" value="🔈">
 </form>
+</div>
+
+<div class="container" id="stations">
+<form action="/add" method="POST">
+  <label for="name">nazwa:</label>
+  <input type="text" name="name" placeholder="radio nowy świat" autocomplete="off">
+
+  <label for="url">link:</label>
+  <input type="text" name="url" placeholder="http://stream.rcs.revma.com/ypqt40u0x1zuv" autocomplete="off">
+
+  <input type="submit" value="dodaj">
+</form>
+</div>
 
 <script>
 fetch("/list")
 .then(response => response.text())
 .then(text => {
-	document.getElementById("selection").innerHTML = text + "<input type=\"submit\" value=\"play\">"
+	document.getElementById("selection").firstElementChild.innerHTML = text + "<input type=\"submit\" value=\"▶\">"
 })
 </script>
-
 
 </body>
 </html>
