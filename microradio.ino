@@ -16,8 +16,8 @@ String ssid = "";
 String pass = "";
 
 // Web interface
-const char *ap_ssid = "Microradio";
-const char *ap_pass = "microradio123";
+String ap_ssid = "Microradio";
+String ap_pass = "microradio123";
 IPAddress ap_ip(192, 168, 1, 1);
 IPAddress subnet(255, 255, 255, 0);
 
@@ -341,6 +341,7 @@ void setup() {
 
 	player = new Player();
 
+	WiFi.softAP(ap_ssid+" - "+WiFi.localIP().toString(), ap_pass);
 	String index = "http://" + WiFi.localIP().toString() + "/control.html";
 	server.on("/", []{ redirect("control.html"); });
 	server.on("/list", []{ player->liststations(); });
