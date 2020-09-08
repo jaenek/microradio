@@ -17,7 +17,7 @@ upload:
 
 mkfs:
 	@../tools/mklittlefs/mklittlefs -p 256 -b 8192 -s 1044464 -c data/ image.bin
-	@esptool.py --chip esp8266 --port /dev/ttyUSB0 --baud 115200 write_flash 0x200000 image.bin
+	@esptool.py --chip esp8266 --port $(PORT) --baud 115200 write_flash 0x200000 image.bin
 
 terminal:
 	@tail -f $(PORT)
