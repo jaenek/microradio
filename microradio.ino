@@ -147,7 +147,7 @@ private:
 		File file = LittleFS.open("/stations", "w");
 		for (int id = 0; id < MAX_STATIONS; id++) {
 			if (stations[id] != nullptr) {
-				file.print(stations[id]->name + ";" + stations[id]->url + "\n");
+				file.print(stations[id]->name + "\t" + stations[id]->url + "\n");
 				delete stations[id];
 				stations[id] = nullptr;
 			}
@@ -327,33 +327,30 @@ void setup() {
 		server.handleClient();
 	}
 	Serial.println("Connected");
+	Serial.println("Serving control panel at http://" + WiFi.localIP().toString());
 
 	server.stop();
 	WiFi.softAPdisconnect();
 	WiFi.disconnect();
+
 	WiFi.mode(WIFI_STA);
 	WiFi.begin(ssid, pass);
-
-	while (WiFi.status() != WL_CONNECTED) {
-		delay(500);
-	}
-	Serial.println("Start playing");
+	while (WiFi.status() != WL_CONNECTED) delay(100);
 
 	player = new Player();
 
-	WiFi.softAP(ap_ssid+" - "+WiFi.localIP().toString(), ap_pass);
-	String index = "http://" + WiFi.localIP().toString() + "/control.html";
 	server.on("/", []{ redirect("control.html"); });
 	server.on("/list", []{ player->liststations(); });
-	server.on("/select", [index]{  redirect(index); player->setstation(server.arg("id").toInt()); });
-	server.on("/delete", [index]{ player->deletestation(server.arg("id").toInt()); redirect(index); });
-	server.on("/add", [index]{ player->addstation(server.arg("name"), server.arg("url")); redirect(index); });
-	server.on("/stop", [index]{ redirect(index); player->stop(); });
-	server.on("/volup", [index]{ redirect(index); player->volup(); });
-	server.on("/voldown", [index]{ redirect(index); player->voldown(); });
-	server.onNotFound([index]{ if (LittleFS.exists(server.uri())) servefile(server.uri()); else redirect(index); });
+	server.on("/select", []{  redirect("control.html"); player->setstation(server.arg("id").toInt()); });
+	server.on("/delete", []{ player->deletestation(server.arg("id").toInt()); redirect("control.html"); });
+	server.on("/add", []{ player->addstation(server.arg("name"), server.arg("url")); redirect("control.html"); });
+	server.on("/stop", []{ redirect("control.html"); player->stop(); });
+	server.on("/volup", []{ redirect("control.html"); player->volup(); });
+	server.on("/voldown", []{ redirect("control.html"); player->voldown(); });
+	server.onNotFound([]{ if (LittleFS.exists(server.uri())) servefile(server.uri()); else redirect("control.html"); });
 	server.begin();
-	Serial.println("Serving control panel at " + index);
+
+	//WiFi.softAP(ap_ssid + " - " + WiFi.localIP().toString());
 }
 
 void loop() {
