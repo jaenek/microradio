@@ -18,8 +18,6 @@ String pass = "";
 // Web interface
 String ap_ssid = "Microradio";
 String ap_pass = "microradio123";
-IPAddress ap_ip(192, 168, 1, 1);
-IPAddress subnet(255, 255, 255, 0);
 
 ESP8266WebServer server(80);
 
@@ -296,7 +294,7 @@ void loadwifisetup() {
 
 		file.close();
 	} else {
-		Serial.println("Warning: Waiting for wifi credentials under 192.168.1.1/setup");
+		Serial.println("Warning: Waiting for wifi credentials under 192.168.4.1/setup");
 	}
 
 	WiFi.begin(ssid, pass);
@@ -307,8 +305,7 @@ void setup() {
 
 	LittleFS.begin();
 
-	WiFi.mode(WIFI_AP_STA);
-	WiFi.softAPConfig(ap_ip, ap_ip, subnet);
+	WiFi.mode(WIFI_AP);
 	WiFi.softAP(ap_ssid, ap_pass);
 
 	Serial.print("AP IP address: ");
@@ -316,26 +313,20 @@ void setup() {
 
 	server.on("/setup", HTTP_GET, []{ servefile("/wifisetup.html"); });
 	server.on("/setup", HTTP_POST, savewifisetup);
-	server.onNotFound([]{ redirect("http://192.168.1.1/setup"); });
-
-	Serial.println("Connecting to WiFi");
-	loadwifisetup();
+	server.onNotFound([]{ redirect("h/setup"); });
 
 	server.begin();
+
+	Serial.println("Connecting to WiFi");
+	WiFi.mode(WIFI_AP_STA);
+	loadwifisetup();
 
 	while (WiFi.status() != WL_CONNECTED) {
 		server.handleClient();
 	}
 	Serial.println("Connected");
-	Serial.println("Serving control panel at http://" + WiFi.localIP().toString());
 
 	server.stop();
-	WiFi.softAPdisconnect();
-	WiFi.disconnect();
-
-	WiFi.mode(WIFI_STA);
-	WiFi.begin(ssid, pass);
-	while (WiFi.status() != WL_CONNECTED) delay(100);
 
 	player = new Player();
 
@@ -349,8 +340,9 @@ void setup() {
 	server.on("/voldown", []{ redirect("control.html"); player->voldown(); });
 	server.onNotFound([]{ if (LittleFS.exists(server.uri())) servefile(server.uri()); else redirect("control.html"); });
 	server.begin();
+	Serial.println("Serving control panel at http://" + WiFi.localIP().toString());
 
-	//WiFi.softAP(ap_ssid + " - " + WiFi.localIP().toString());
+	WiFi.softAP(ap_ssid + " - " + WiFi.localIP().toString(), ap_pass);
 }
 
 void loop() {
