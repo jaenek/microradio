@@ -312,8 +312,8 @@ void setup() {
 	Serial.println(WiFi.softAPIP());
 
 	server.on("/setup", HTTP_GET, []{ servefile("/wifisetup.html"); });
-	server.on("/setup", HTTP_POST, savewifisetup);
-	server.onNotFound([]{ redirect("h/setup"); });
+	server.on("/setup", HTTP_POST, []{ savewifisetup(); server.send(200, "text/html", "<meta charset=\"utf-8\"><h1>Łączenie z siecią... ⏳</h1>\n<p>Jeśli nie pojawi się sieć Microradio - &#60;adres ip&#62; to spróbuj ponownie.</p>"); });
+	server.onNotFound([]{ redirect("/setup"); });
 
 	server.begin();
 
