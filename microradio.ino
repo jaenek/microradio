@@ -15,7 +15,7 @@ void setup() {
 	Serial.println(WiFi.softAPIP());
 
 	server.on("/setup", HTTP_GET, []{ servefile("/wifisetup.html"); });
-	server.on("/setup", HTTP_POST, []{ savewifisetup(server.arg("ssid"), server.arg("pass")); server.send(200, "text/html", "<meta charset=\"utf-8\"><h1>Łączenie z siecią... ⏳</h1>\n<p>Jeśli nie pojawi się sieć Microradio - &#60;adres ip&#62; to spróbuj ponownie.</p>"); });
+	server.on("/setup", HTTP_POST, []{ savewifisetup(server.arg("ssid"), server.arg("pass")); servefile("/wifiresponse.html"); });
 	server.onNotFound([]{ redirect("/setup"); });
 
 	server.begin();
