@@ -19,6 +19,9 @@ upload: mkfs
 	@arduino-cli upload -b $(FQBN)$(BRPR) -p $(PORT)
 	@esptool.py --chip esp8266 --port $(PORT) --baud 115200 write_flash 0x200000 image.bin
 
+uploaddata: mkfs
+	@esptool.py --chip esp8266 --port $(PORT) --baud 115200 write_flash 0x200000 image.bin
+
 release: clean compile mkfs
 	@cp build/*/microradio.ino.bin releases/program.bin
 	@cp image.bin releases/data.bin
