@@ -7,38 +7,43 @@
 </head>
 <body>
 
-<div class="container" id="status">
-<h2>Microradio</h2>
+<div id="status">
+<h1 style="font-family: 'Square deal'; font-size: 5vw;">Microradio</h1>
 </div>
 
-<div class="container" id="selection">
+<div id="selection">
+<h2>Wybór/Usuwanie stacji:</h2>
 <form method="POST">
 </form>
 </div>
 
-<div class="container" id="control">
+<div id="control">
+<h2>Opcje odtwarzania:</h2>
+<div id="buttons">
 <form action="/stop" method="POST">
-  <input type="submit" value="⬛">
+  <input type="submit" value="Stop">
 </form>
 
 <form action="/volup" method="POST">
-  <input type="submit" value="🔊">
+  <input type="submit" value="Podgłośnij">
 </form>
 
 <form action="/voldown" method="POST">
-  <input type="submit" value="🔈">
+  <input type="submit" value="Ścisz">
 </form>
 </div>
+</div>
 
-<div class="container" id="stations">
+<div id="stations">
+<h2>Dodawanie stacji:</h2>
 <form action="/add" method="POST">
-  <label for="name">nazwa:</label>
+  <label for="name">Nazwa:</label>
   <input type="text" name="name" placeholder="radio nowy świat" autocomplete="off">
-
-  <label for="url">link:</label>
+  <br>
+  <label for="url">Link:</label>
   <input type="text" name="url" placeholder="http://stream.rcs.revma.com/ypqt40u0x1zuv" autocomplete="off">
-
-  <input type="submit" value="dodaj">
+  <br>
+  <input type="submit" value="Dodaj">
 </form>
 </div>
 
@@ -46,7 +51,7 @@
 fetch("/list")
 .then(response => response.text())
 .then(text => {
-	document.getElementById("selection").firstElementChild.innerHTML = text + "<input type=\"submit\" value=\"▶\" formaction=\"/select\">" + "<input type=\"submit\" value=\"❌\" formaction=\"/delete\">"
+	document.getElementById("selection").lastElementChild.innerHTML = text + "<div id=\"buttons\"><input type=\"submit\" value=\"Wybierz\" formaction=\"/select\">" + "<input type=\"submit\" value=\"Usuń\" formaction=\"/delete\"></div>"
 })
 </script>
 

@@ -1,6 +1,13 @@
+@font-face {
+	font-family: "Square deal";
+	font-weight: 700;
+	src: url("square-deal.ttf")
+}
+
 body {
+	font-family: Roboto, Verdana, sans-serif;
 	width: 400px;
-	height: 100vh;
+	height: 90vh;
 	margin: 0 auto;
 	display: flex;
 	flex-direction: column;
@@ -8,15 +15,16 @@ body {
 	align-items: stretch;
 }
 
-.container, form {
-	display: flex;
-	justify-content: center;
-	align-items: stretch;
+#status {
+	text-align: center;
 }
 
-form {
+#control form {
 	width: 100%;
-	flex-direction: column;
+}
+
+#buttons {
+	display: flex;
 }
 
 label {
@@ -25,6 +33,7 @@ label {
 
 input, select {
 	font-size: 1em;
+	width: 100%;
 	height: 5vh;
 	padding: 0;
 	border: none;
@@ -34,4 +43,15 @@ input, select {
 
 input[type=text], select {
 	border-bottom: 1px dashed grey;
+	height: 3vh;
+	margin-top: 1vh;
+	margin-bottom: 2vh;
+}
+
+input[type=submit] {
+	text-decoration: underline;
+}
+
+input[type=submit]:hover {
+	background-color: darkgray;
 }
