@@ -3,6 +3,12 @@
 #include "web.h"
 #include "player.h"
 
+// Main setup sets up serial connection and LittleFS filesystem.
+// Operation begins in access point mode, the server waits for the user to
+// enter credentials. After the user entered the credentials the WiFi config
+// changes to access point and station mode, the music player is started
+// and the server reconfigured. WiFi access point ssid is changed to
+// Microradio - <obtained ip address>
 void setup() {
 	Serial.begin(115200);
 

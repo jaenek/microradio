@@ -6,16 +6,6 @@
 // Player config
 const int MAX_STATIONS = 10;
 
-// Called when a metadata event occurs (i.e. an ID3 tag, an ICY block, etc.
-static void metadatacallback(void *cbData, const char *type, bool isUnicode, const char *string) {
-	const char *ptr = reinterpret_cast<const char *>(cbData);
-	(void) isUnicode; // Punt this ball for now
-	// Note that the type and string may be in PROGMEM, so copy them to RAM for printf
-	Serial.printf_P(PSTR("METADATA(%s) '%s' = '%s'\n"), ptr, type, string);
-	Serial.flush();
-}
-
-
 // Called when there's a warning or error (like a buffer underflow or decode hiccup)
 static void statuscallback(void *cbData, int code, const char *string) {
 	const char *ptr = reinterpret_cast<const char *>(cbData);
@@ -30,6 +20,7 @@ static void statuscallback(void *cbData, int code, const char *string) {
 	}
 }
 
+// Stores basic information about a station
 struct Station {
 	String name;
 	String url;
@@ -40,6 +31,9 @@ struct Station {
 	}
 };
 
+// Main music player class handles http and icy audio/mpeg streams,
+// adding/deleting/loading/saving stations to file, listing stations
+// TODO: printing current playback status.
 class Player
 {
 private:
@@ -52,6 +46,7 @@ private:
 	Station *stations[MAX_STATIONS] = {};
 	int currentstationid;
 
+	// Plays the station url
 	void play(Station *station) {
 		if (station == nullptr) {
 			Serial.println("Error: Station doesn't exist");
@@ -65,7 +60,6 @@ private:
 
 		Serial.println("Opening " + station->url);
 		stream = new AudioFileSourceHTTPStream(station->url.c_str());
-		stream->RegisterMetadataCB(metadatacallback, (void*)"ID3");
 
 		if (!stream->isOpen()) {
 			Serial.println("Error: Couldn't open the stream");
@@ -87,6 +81,7 @@ private:
 		mp3->begin(buff, out);
 	}
 
+	// Loads stations from /stations file
 	void loadstations() {
 		Serial.println("Loading stations");
 		String filepath = "/stations";
@@ -125,11 +120,26 @@ private:
 		}
 	}
 
+	// Saves stations to /station file, removes tabs/newlines from input,
+	// the stations are saved line by line with this format:
+	// <station name>\t<station url>\n.
 	void savestations() {
 		Serial.println("Saving stations");
 		File file = LittleFS.open("/stations", "w");
 		for (int id = 0; id < MAX_STATIONS; id++) {
 			if (stations[id] != nullptr) {
+				auto removeall = [](String s, char c){
+					int index;
+					while ((index = s.indexOf(c)) != -1) {
+						s.remove(index);
+					}
+				};
+
+				removeall(stations[id]->name, '\t');
+				removeall(stations[id]->name, '\n');
+				removeall(stations[id]->url, '\t');
+				removeall(stations[id]->url, '\n');
+
 				file.print(stations[id]->name + "\t" + stations[id]->url + "\n");
 				delete stations[id];
 				stations[id] = nullptr;
@@ -146,6 +156,7 @@ public:
 		this->play(stations[currentstationid]);
 	}
 
+	// Stops playback and cleans up
 	void stop() {
 		mp3->stop();
 		stream->close();
@@ -156,10 +167,12 @@ public:
 		mp3 = nullptr;
 	}
 
+	// Updates volume with a set value
 	void volupdate() {
 		out->SetGain((float)volume/100);
 	}
 
+	// Increases volume
 	void volup() {
 		volume += 10;
 		if (volume > 100)
@@ -167,6 +180,7 @@ public:
 		this->volupdate();
 	}
 
+	// Decreases volume
 	void voldown() {
 		volume -= 10;
 		if (volume < 0)
@@ -174,6 +188,7 @@ public:
 		this->volupdate();
 	}
 
+	// Adds a station to list
 	void addstation(String name, String url) {
 		Serial.println("Adding station: " + name + "; " + url);
 		String filepath = "/stations";
@@ -188,6 +203,7 @@ public:
 		loadstations();
 	}
 
+	// Deletes a station from list
 	void deletestation(int id) {
 		if (stations[id] != nullptr) {
 			delete stations[id];
@@ -197,12 +213,14 @@ public:
 		}
 	}
 
+	// Sets a station with an id for playback
 	void setstation(int id) {
 		Serial.println("Setting station: " + String(id));
 		currentstationid = id;
 		this->play(stations[currentstationid]);
 	}
 
+	// Lists station in html <select> format
 	String liststations() {
 		String selectelement = "<select name=\"id\">";
 		for (int id = 0; id < MAX_STATIONS; id++) {
