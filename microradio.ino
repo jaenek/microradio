@@ -47,6 +47,8 @@ void setup() {
 	server.on("/stop", []{ redirect("control.html"); player->stop(); });
 	server.on("/volup", []{ redirect("control.html"); player->volup(); });
 	server.on("/voldown", []{ redirect("control.html"); player->voldown(); });
+	server.on("/volume", []{ server.send(200, "text/html", String(player->getvolume())); });
+	server.on("/station", []{ server.send(200, "text/html", player->getstation()); });
 	server.onNotFound([]{ if (LittleFS.exists(server.uri())) servefile(server.uri()); else redirect("control.html"); });
 	server.begin();
 	Serial.println("Serving control panel at http://" + WiFi.localIP().toString());

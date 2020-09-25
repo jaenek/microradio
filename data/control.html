@@ -9,12 +9,8 @@
 
 <div id="status">
 <h1 style="font-family: 'Square deal'; font-size: 8vh;">Microradio</h1>
-</div>
-
-<div id="selection">
-<h2>Wybór/Usuwanie stacji:</h2>
-<form method="POST">
-</form>
+<h3 id="station">stacja: <h3>
+<h3 id="volume">głośność: <h3>
 </div>
 
 <div id="control">
@@ -34,6 +30,13 @@
 </div>
 </div>
 
+<div id="selection">
+<h2>Wybór/Usuwanie stacji:</h2>
+<form method="POST">
+</form>
+</div>
+
+
 <div id="stations">
 <h2>Dodawanie stacji:</h2>
 <form action="/add" method="POST">
@@ -48,6 +51,16 @@
 </div>
 
 <script>
+fetch("/station")
+.then(response => response.text())
+.then(station => {
+	document.getElementById("station").innerHTML += station;
+})
+fetch("/volume")
+.then(response => response.text())
+.then(volume => {
+	document.getElementById("volume").innerHTML += volume + "%";
+})
 fetch("/list")
 .then(response => response.text())
 .then(text => {

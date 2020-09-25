@@ -188,6 +188,11 @@ public:
 		this->volupdate();
 	}
 
+	// Returns current volume
+	int getvolume() {
+		return volume;
+	}
+
 	// Adds a station to list
 	void addstation(String name, String url) {
 		Serial.println("Adding station: " + name + "; " + url);
@@ -230,6 +235,14 @@ public:
 		}
 		selectelement += "</select>";
 		return selectelement;
+	}
+
+	// Returns current station name if exists
+	String getstation() {
+		if (stations[currentstationid] != nullptr)
+			return stations[currentstationid]->name;
+		else
+			return "";
 	}
 
 	void loop() {
