@@ -41,14 +41,14 @@ void setup() {
 
 	server.on("/", []{ redirect("control.html"); });
 	server.on("/list", []{ server.send(200, "text/html", player->liststations()); });
-	server.on("/select", []{  redirect("control.html"); player->setstation(server.arg("id").toInt()); });
-	server.on("/delete", []{ player->deletestation(server.arg("id").toInt()); redirect("control.html"); });
-	server.on("/add", []{ player->addstation(server.arg("name"), server.arg("url")); redirect("control.html"); });
-	server.on("/stop", []{ redirect("control.html"); player->stop(); });
-	server.on("/volup", []{ redirect("control.html"); player->volup(); });
-	server.on("/voldown", []{ redirect("control.html"); player->voldown(); });
+	server.on("/add", []{ player->addstation(server.arg("name"), server.arg("url")); redirect("/list"); });
+	server.on("/delete", []{ player->deletestation(server.arg("id").toInt()); redirect("/list"); });
 	server.on("/volume", []{ server.send(200, "text/html", String(player->getvolume())); });
+	server.on("/stop", []{ player->stop(); server.send(200, "text/html", "stopped"); });
+	server.on("/volup", []{ player->volup(); redirect("/volume"); });
+	server.on("/voldown", []{ player->voldown(); redirect("/volume"); });
 	server.on("/station", []{ server.send(200, "text/html", player->getstation()); });
+	server.on("/select", []{  player->setstation(server.arg("id").toInt()); redirect("/station"); });
 	server.onNotFound([]{ if (LittleFS.exists(server.uri())) servefile(server.uri()); else redirect("control.html"); });
 	server.begin();
 	Serial.println("Serving control panel at http://" + WiFi.localIP().toString());

@@ -8,64 +8,96 @@
 <body>
 
 <div id="status">
-<h1 style="font-family: 'Square deal'; font-size: 8vh;">Microradio</h1>
-<h3 id="station">stacja: <h3>
-<h3 id="volume">głośność: <h3>
+  <h1 style="font-family: 'Square deal'; font-size: 8vh;">Microradio</h1>
+  <h3 id="station"><h3>
+  <h3 id="volume"><h3>
 </div>
 
 <div id="control">
 <h2>Opcje odtwarzania:</h2>
-<div id="buttons">
-<form action="/stop" method="POST">
-  <input type="submit" value="Stop">
-</form>
-
-<form action="/voldown" method="POST">
-  <input type="submit" value="Ciszej">
-</form>
-
-<form action="/volup" method="POST">
-  <input type="submit" value="Głośniej">
-</form>
-</div>
-</div>
-
-<div id="selection">
-<h2>Wybór/Usuwanie stacji:</h2>
-<form method="POST">
+<form id="control">
+  <input type="submit" value="Stop" formaction="/stop">
+  <input type="submit" value="Ciszej" formaction="/voldown">
+  <input type="submit" value="Głośniej" formaction="/volup">
 </form>
 </div>
 
+<form id="select">
+</form>
 
-<div id="stations">
-<h2>Dodawanie stacji:</h2>
-<form action="/add" method="POST">
+<form id="add">
+  <h2>Dodawanie stacji:</h2>
   <label for="name">Nazwa:</label>
   <input type="text" name="name" placeholder="radio nowy świat" autocomplete="off">
   <br>
   <label for="url">Link:</label>
   <input type="text" name="url" placeholder="http://stream.rcs.revma.com/ypqt40u0x1zuv" autocomplete="off">
   <br>
-  <input type="submit" value="Dodaj">
+  <input type="submit" value="Dodaj" formaction="/add">
 </form>
-</div>
 
 <script>
+function addSubmitListener(formid, handler) {
+	document.forms[formid].addEventListener("submit", (event) => {
+		event.preventDefault();
+		// TODO do something here to show user that form is being submitted
+		fetch(event.submitter.formAction, {
+			method: "POST",
+			body: new URLSearchParams(new FormData(event.target)) // event.target is the form
+		}).then(response => {
+			return response.text();
+		}).then(text => {
+			handler(event.submitter.formAction, text);
+		})
+	});
+}
+
+function fillSelectionForm(text) {
+	document.forms["select"].innerHTML =
+		"<h2>Wybór/Usuwanie stacji:</h2>"
+		+ text
+		+ "<div id=\"buttons\">"
+		+ "<input type=\"submit\" value=\"Wybierz\" formaction=\"/select\">"
+		+ "<input type=\"submit\" value=\"Usuń\" formaction=\"/delete\">"
+		+ "</div>";
+}
+
+addSubmitListener("control", (action, text) => {
+	if (action.endsWith("/stop"))
+		document.getElementById("station").innerHTML = "odtwarzanie wstrzymane";
+	else
+		document.getElementById("volume").innerHTML = "głośność: " + text + "%";
+});
+
+addSubmitListener("select", (action, text) => {
+	if (action.endsWith("/select"))
+		document.getElementById("station").innerHTML = "stacja: " + text;
+	else
+		fillSelectionForm(text);
+});
+
+addSubmitListener("add", (action, text) => {
+	fillSelectionForm(text);
+	document.getElementsByName("name").item(0).value = "";
+	document.getElementsByName("url").item(0).value = "";
+});
+
+// fetch info when loading page
 fetch("/station")
-.then(response => response.text())
-.then(station => {
-	document.getElementById("station").innerHTML += station;
-})
+	.then(response => response.text())
+	.then(station => {
+		document.getElementById("station").innerHTML += "stacja: " + station;
+	})
+
 fetch("/volume")
-.then(response => response.text())
-.then(volume => {
-	document.getElementById("volume").innerHTML += volume + "%";
-})
+	.then(response => response.text())
+	.then(volume => {
+		document.getElementById("volume").innerHTML += "głośność: " + volume + "%";
+	})
+
 fetch("/list")
-.then(response => response.text())
-.then(text => {
-	document.getElementById("selection").lastElementChild.innerHTML = text + "<div id=\"buttons\"><input type=\"submit\" value=\"Wybierz\" formaction=\"/select\">" + "<input type=\"submit\" value=\"Usuń\" formaction=\"/delete\"></div>"
-})
+	.then(response => response.text())
+	.then(text => { fillSelectionForm(text); })
 </script>
 
 </body>

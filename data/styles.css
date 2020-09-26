@@ -15,18 +15,6 @@ body {
 	align-items: stretch;
 }
 
-#status {
-	text-align: center;
-}
-
-#control form {
-	width: 100%;
-}
-
-#buttons {
-	display: flex;
-}
-
 label {
 	width: 100px;
 }
@@ -37,7 +25,6 @@ input, select {
 	height: 5vh;
 	padding: 0;
 	border: none;
-	border-radius: none;
 	background-color: white;
 }
 
@@ -49,9 +36,28 @@ input[type=text], select {
 }
 
 input[type=submit] {
+	border-radius: none;
 	text-decoration: underline;
 }
 
 input[type=submit]:hover {
 	background-color: darkgray;
+}
+
+#status {
+	text-align: center;
+}
+
+#control {
+	width: 100%;
+	display: flex;
+	flex-wrap: wrap;
+}
+
+#control input {
+	width: 33%;
+}
+
+#select input {
+	width: 50%;
 }

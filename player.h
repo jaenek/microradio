@@ -266,7 +266,9 @@ public:
 		String selectelement = "<select name=\"id\">";
 		for (int id = 0; id < MAX_STATIONS; id++) {
 			if (stations[id] != nullptr) {
-				selectelement += "<option value=\"" + String(id) + "\">" + stations[id]->name + "</option>\n";
+				selectelement += "<option value=\"" + String(id) + "\""
+					+ (currentstationid == id ? " selected>" : ">")
+					+ stations[id]->name + "</option>\n";
 			}
 		}
 		selectelement += "</select>";
