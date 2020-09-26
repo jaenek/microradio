@@ -34,8 +34,7 @@ struct Station {
 // Main music player class handles http and icy audio/mpeg streams,
 // adding/deleting/loading/saving stations to file, listing stations
 // TODO: printing current playback status.
-class Player
-{
+class Player {
 private:
 	AudioFileSourceHTTPStream *stream = nullptr;
 	AudioFileSourceSPIRAMBuffer *buff = nullptr;
@@ -73,7 +72,6 @@ private:
 		buff->RegisterStatusCB(statuscallback, (void*)"buffer");
 
 		out = new AudioOutputI2S();
-		volume = 100;
 		this->volupdate();
 
 		mp3 = new AudioGeneratorMP3();
@@ -148,11 +146,46 @@ private:
 		file.close();
 	}
 
+	// Loads previous status(station id and volume) from a /status file
+	// FIXME
+	void loadstatus() {
+		Serial.println("Loading status");
+		String buf, filepath = "/status";
+		char c;
+		if (LittleFS.exists(filepath)) {
+			File file = LittleFS.open(filepath, "r");
+			while (file.available()) {
+				char c = file.read();
+				if (c == '\n') {
+					volume = buf.toInt();
+					buf = "";
+					continue;
+				}
+				buf += c;
+			}
+			currentstationid = buf.toInt();
+			file.close();
+		} else {
+			Serial.println("Warning: no /status file");
+			volume = 100;
+			currentstationid = 0;
+		}
+	}
+
+	// Saves status to a /status file
+	void savestatus() {
+		Serial.println("Saving status");
+		File file = LittleFS.open("/status", "w");
+		file.print(String(volume) + "\n" + String(currentstationid));
+		file.close();
+	}
+
+
 public:
 	Player() {
 		retryms = millis();
 		loadstations();
-		currentstationid = 0;
+		loadstatus();
 		this->play(stations[currentstationid]);
 	}
 
@@ -178,6 +211,7 @@ public:
 		if (volume > 100)
 			volume = 100;
 		this->volupdate();
+		this->savestatus();
 	}
 
 	// Decreases volume
@@ -186,6 +220,7 @@ public:
 		if (volume < 0)
 			volume = 0;
 		this->volupdate();
+		this->savestatus();
 	}
 
 	// Returns current volume
@@ -223,6 +258,7 @@ public:
 		Serial.println("Setting station: " + String(id));
 		currentstationid = id;
 		this->play(stations[currentstationid]);
+		this->savestatus();
 	}
 
 	// Lists station in html <select> format
