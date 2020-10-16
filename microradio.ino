@@ -41,9 +41,9 @@ void setup() {
 	player = new Player();
 
 	buttonmanager = new ButtonManager();
-	buttonmanager->on(16, []{ player->stop(); });
+	buttonmanager->on(16, []{ player->prevstation(); });
 	buttonmanager->on(5, []{ player->stop(); });
-	buttonmanager->on(0, []{ player->stop(); });
+	buttonmanager->on(0, []{ player->nextstation(); });
 
 	server.on("/", []{ redirect("control.html"); });
 	server.on("/list", []{ server.send(200, "text/html", player->liststations()); });

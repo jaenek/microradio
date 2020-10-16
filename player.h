@@ -1,10 +1,8 @@
+#include <vector>
 #include <AudioFileSourceHTTPStream.h>
 #include <AudioFileSourceSPIRAMBuffer.h>
 #include <AudioGeneratorMP3.h>
 #include <AudioOutputI2S.h>
-
-// Player config
-const int MAX_STATIONS = 10;
 
 // Called when there's a warning or error (like a buffer underflow or decode hiccup)
 static void statuscallback(void *cbData, int code, const char *string) {
@@ -42,7 +40,7 @@ private:
 	AudioOutputI2S *out = nullptr;
 	int retryms;
 	int volume;
-	Station *stations[MAX_STATIONS] = {};
+	std::vector<Station*> stations;
 	int currentstationid;
 
 	// Plays the station url
@@ -81,6 +79,9 @@ private:
 
 	// Loads stations from /stations file
 	void loadstations() {
+		// erase all current elements
+		stations.clear();
+
 		Serial.println("Loading stations");
 		String filepath = "/stations";
 		if (LittleFS.exists(filepath)) {
@@ -98,13 +99,9 @@ private:
 				}
 
 				if (c == '\n') {
-					stations[id] = new Station(name, buf);
+					stations.push_back(new Station(name, buf));
 					Serial.println(String(id) + ". " + name + "; " + buf);
 					id++;
-					if (id == MAX_STATIONS) {
-						Serial.println("Maximum limit of stations reached!");
-						break;
-					}
 					buf = "";
 					continue;
 				}
@@ -124,7 +121,7 @@ private:
 	void savestations() {
 		Serial.println("Saving stations");
 		File file = LittleFS.open("/stations", "w");
-		for (int id = 0; id < MAX_STATIONS; id++) {
+		for (int id = 0; id < stations.size(); id++) {
 			if (stations[id] != nullptr) {
 				auto removeall = [](String s, char c){
 					int index;
@@ -147,7 +144,6 @@ private:
 	}
 
 	// Loads previous status(station id and volume) from a /status file
-	// FIXME
 	void loadstatus() {
 		Serial.println("Loading status");
 		String buf, filepath = "/status";
@@ -245,12 +241,9 @@ public:
 
 	// Deletes a station from list
 	void deletestation(int id) {
-		if (stations[id] != nullptr) {
-			delete stations[id];
-			stations[id] = nullptr;
-			savestations();
-			loadstations();
-		}
+		stations.erase(stations.begin()+id);
+		savestations();
+		loadstations();
 	}
 
 	// Sets a station with an id for playback
@@ -261,10 +254,22 @@ public:
 		this->savestatus();
 	}
 
+	void prevstation() {
+		int id = currentstationid - 1;
+		if (id < 0) id = stations.size() - 1;
+		this->setstation(id);
+	}
+
+	void nextstation() {
+		int id = currentstationid + 1;
+		if (id > stations.size() - 1) id = 0;
+		this->setstation(id);
+	}
+
 	// Lists station in html <select> format
 	String liststations() {
 		String selectelement = "<select name=\"id\">";
-		for (int id = 0; id < MAX_STATIONS; id++) {
+		for (int id = 0; id < stations.size(); id++) {
 			if (stations[id] != nullptr) {
 				selectelement += "<option value=\"" + String(id) + "\""
 					+ (currentstationid == id ? " selected>" : ">")
