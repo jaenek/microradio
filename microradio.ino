@@ -2,6 +2,7 @@
 #include <LittleFS.h>
 #include "web.h"
 #include "player.h"
+#include "buttons.h"
 
 // Main setup sets up serial connection and LittleFS filesystem.
 // Operation begins in access point mode, the server waits for the user to
@@ -39,6 +40,11 @@ void setup() {
 
 	player = new Player();
 
+	buttonmanager = new ButtonManager();
+	buttonmanager->on(16, []{ player->stop(); });
+	buttonmanager->on(5, []{ player->stop(); });
+	buttonmanager->on(0, []{ player->stop(); });
+
 	server.on("/", []{ redirect("control.html"); });
 	server.on("/list", []{ server.send(200, "text/html", player->liststations()); });
 	server.on("/add", []{ player->addstation(server.arg("name"), server.arg("url")); redirect("/list"); });
@@ -57,6 +63,8 @@ void setup() {
 }
 
 void loop() {
+	buttonmanager->loop();
+
 	server.handleClient();
 
 	player->loop();
