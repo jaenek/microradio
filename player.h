@@ -185,8 +185,17 @@ public:
 		this->play(stations[currentstationid]);
 	}
 
+	// Resumes playback
+	void resume() {
+		this->play(stations[currentstationid]);
+	}
+
 	// Stops playback and cleans up
-	void stop() {
+	// return false when no mp3 playing
+	bool stop() {
+		if (mp3 == nullptr)
+			return false;
+
 		mp3->stop();
 		stream->close();
 		delete mp3;
@@ -194,6 +203,8 @@ public:
 		delete stream;
 		delete out;
 		mp3 = nullptr;
+
+		return true;
 	}
 
 	// Updates volume with a set value

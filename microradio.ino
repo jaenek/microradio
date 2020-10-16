@@ -42,7 +42,7 @@ void setup() {
 
 	buttonmanager = new ButtonManager();
 	buttonmanager->on(16, []{ player->prevstation(); });
-	buttonmanager->on(5, []{ player->stop(); });
+	buttonmanager->on(5, []{ if (!player->stop()) player->resume(); });
 	buttonmanager->on(0, []{ player->nextstation(); });
 
 	server.on("/", []{ redirect("control.html"); });

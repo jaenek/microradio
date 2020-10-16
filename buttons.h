@@ -1,6 +1,7 @@
 #include <vector>
 #include <functional>
 
+// TODO maybe differentiate short/long press
 struct Button {
 	int pin;
 	std::function<void ()> handler;
