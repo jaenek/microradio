@@ -209,7 +209,8 @@ public:
 
 	// Updates volume with a set value
 	void volupdate() {
-		out->SetGain((float)volume/100);
+		if (mp3 != nullptr)
+			out->SetGain((float)volume/100);
 	}
 
 	// Increases volume
@@ -252,6 +253,7 @@ public:
 
 	// Deletes a station from list
 	void deletestation(int id) {
+		if (id > stations.size()-1) return;
 		stations.erase(stations.begin()+id);
 		savestations();
 		loadstations();
@@ -259,6 +261,7 @@ public:
 
 	// Sets a station with an id for playback
 	void setstation(int id) {
+		if (id > stations.size()-1) return;
 		Serial.println("Setting station: " + String(id));
 		currentstationid = id;
 		this->play(stations[currentstationid]);
