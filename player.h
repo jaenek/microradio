@@ -238,6 +238,9 @@ public:
 
 	// Adds a station to list
 	void addstation(String name, String url) {
+		if (url.startsWith("https")) {
+			url = "http" + url.substring(5);
+		}
 		Serial.println("Adding station: " + name + "; " + url);
 		String filepath = "/stations";
 		File file;
