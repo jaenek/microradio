@@ -1,16 +1,56 @@
 #include <vector>
 #include <functional>
 
-// TODO maybe differentiate short/long press
 struct Button {
 	int pin;
-	std::function<void ()> handler;
-	int laststate;
+	std::function<void ()> shorthandler;
+	std::function<void ()> longhandler;
+	unsigned int longhandercounter = 1;
+	unsigned long start = 0;
+	unsigned long  duration = 0;
+	bool buttonpressed = false;
+	bool buttonchanged = false;
+	bool laststate = HIGH;
 
-	Button(int pin, std::function<void ()> handler) {
-		this->pin = pin;
-		this->handler = handler;
-		this->laststate = HIGH;
+	Button(int pin, std::function<void ()> shorthandler, std::function<void ()> longhandler) : pin(pin),
+		shorthandler(shorthandler), longhandler(longhandler) {};
+
+	void loop() {
+		bool currentstate = digitalRead(pin);
+
+		if (currentstate != laststate) {
+
+			Serial.printf("changed %d", pin);
+
+			buttonchanged = true;
+		}
+
+		if (buttonpressed) {
+			duration = millis() - start;
+
+			if (duration/1000 == longhandercounter) {
+				longhandler();
+				longhandercounter++;
+			}
+		}
+
+		if (buttonpressed == true && buttonchanged == true) {
+			Serial.printf("released %d held for %lu\n", pin, duration);
+
+			if (duration < 1000)
+				shorthandler();
+
+			buttonchanged = false;
+			buttonpressed = false;
+			duration = 0;
+			longhandercounter = 1;
+		} else if (buttonchanged) {
+			buttonchanged = false;
+			buttonpressed = true;
+			start = millis();
+		}
+
+		laststate = currentstate;
 	}
 };
 
@@ -19,22 +59,16 @@ private:
 	std::vector<Button> buttons;
 
 public:
-	void on(int pin, std::function<void ()> func) {
-		buttons.push_back(Button(pin, func));
+	void on(int pin, std::function<void ()> shorthandler, std::function<void ()> longhandler) {
+		buttons.emplace_back(pin, shorthandler, longhandler);
 
-		pinMode(pin, INPUT);
+		pinMode(pin, INPUT_PULLUP);
 		Serial.printf("initiated %d\n", pin);
 	}
 
 	void loop() {
-		for (int i = 0; i < buttons.size(); i ++) {
-			int currentstate = digitalRead(buttons[i].pin);
-
-			if (buttons[i].laststate == HIGH && currentstate == LOW) {
-				buttons[i].handler();
-			}
-
-			buttons[i].laststate = currentstate;
+		for (int i = 0; i < buttons.size(); i++) {
+			buttons[i].loop();
 		}
 	}
 } *buttonmanager;
