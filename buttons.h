@@ -19,9 +19,7 @@ struct Button {
 		bool currentstate = digitalRead(pin);
 
 		if (currentstate != laststate) {
-
-			Serial.printf("changed %d", pin);
-
+			DBG.printf("changed %d", pin);
 			buttonchanged = true;
 		}
 
@@ -35,7 +33,7 @@ struct Button {
 		}
 
 		if (buttonpressed == true && buttonchanged == true) {
-			Serial.printf("released %d held for %lu\n", pin, duration);
+			DBG.printf("released %d held for %lu\n", pin, duration);
 
 			if (duration < 1000)
 				shorthandler();
@@ -60,10 +58,9 @@ private:
 
 public:
 	void on(int pin, std::function<void ()> shorthandler, std::function<void ()> longhandler) {
+		DBG.printf("initiated %d\n", pin);
 		buttons.emplace_back(pin, shorthandler, longhandler);
-
 		pinMode(pin, INPUT_PULLUP);
-		Serial.printf("initiated %d\n", pin);
 	}
 
 	void loop() {

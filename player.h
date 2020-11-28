@@ -4,6 +4,7 @@
 #include <AudioGeneratorMP3.h>
 #include <AudioOutputI2S.h>
 
+#ifndef NSTATUS
 // Called when there's a warning or error (like a buffer underflow or decode hiccup)
 static void statuscallback(void *cbData, int code, const char *string) {
 	const char *ptr = reinterpret_cast<const char *>(cbData);
@@ -11,12 +12,13 @@ static void statuscallback(void *cbData, int code, const char *string) {
 	static int lastCode = -99999;
 	uint32_t now = millis();
 	if ((lastCode != code) || (now - lastTime > 1000)) {
-		Serial.printf_P(PSTR("STATUS(%s) '%d' = '%s'\n"), ptr, code, string);
-		Serial.flush();
+		DBG.printf_P(PSTR("STATUS(%s) '%d' = '%s'\n"), ptr, code, string);
+		DBG.flush();
 		lastTime = now;
 		lastCode = code;
 	}
 }
+#endif
 
 // Stores basic information about a station
 struct Station {
@@ -31,7 +33,6 @@ struct Station {
 
 // Main music player class handles http and icy audio/mpeg streams,
 // adding/deleting/loading/saving stations to file, listing stations
-// TODO: printing current playback status.
 class Player {
 private:
 	AudioFileSourceHTTPStream *stream = nullptr;
@@ -45,21 +46,20 @@ private:
 
 	// Plays the station url
 	void play(Station *station) {
+		DBG.println("Opening (" + station->name + ", " + station->url + ")");
+
 		if (station == nullptr) {
-			Serial.println("Error: Station doesn't exist");
+			Serial.println("Error: Cannot open, station doesn't exist");
 			return;
 		}
 
 		if (mp3 != nullptr)
 			this->stop();
 
-		audioLogger = &Serial;
-
-		Serial.println("Opening " + station->url);
 		stream = new AudioFileSourceHTTPStream(station->url.c_str());
 
 		if (!stream->isOpen()) {
-			Serial.println("Error: Couldn't open the stream");
+			Serial.println("Error: Couldn't open the stream" + station->url);
 			stream->close();
 			delete stream;
 			stream = nullptr;
@@ -67,22 +67,24 @@ private:
 		}
 
 		buff = new AudioFileSourceSPIRAMBuffer(stream, 4, 128*1024);
-		buff->RegisterStatusCB(statuscallback, (void*)"buffer");
-
 		out = new AudioOutputI2S();
-		this->volupdate();
-
 		mp3 = new AudioGeneratorMP3();
+
+#ifndef NSTATUS
+		buff->RegisterStatusCB(statuscallback, (void*)"buffer");
 		mp3->RegisterStatusCB(statuscallback, (void*)"mp3");
+#endif
+
+		this->volupdate();
 		mp3->begin(buff, out);
 	}
 
 	// Loads stations from /stations file
 	void loadstations() {
-		// erase all current elements
+		DBG.println("Loading stations");
+
 		stations.clear();
 
-		Serial.println("Loading stations");
 		String filepath = "/stations";
 		if (LittleFS.exists(filepath)) {
 			File file = LittleFS.open(filepath, "r");
@@ -100,7 +102,7 @@ private:
 
 				if (c == '\n') {
 					stations.push_back(new Station(name, buf));
-					Serial.println(String(id) + ". " + name + "; " + buf);
+					DBG.println(String(id) + ". " + name + "; " + buf);
 					id++;
 					buf = "";
 					continue;
@@ -119,7 +121,8 @@ private:
 	// the stations are saved line by line with this format:
 	// <station name>\t<station url>\n.
 	void savestations() {
-		Serial.println("Saving stations");
+		DBG.println("Saving stations");
+
 		File file = LittleFS.open("/stations", "w");
 		for (int id = 0; id < stations.size(); id++) {
 			if (stations[id] != nullptr) {
@@ -145,7 +148,8 @@ private:
 
 	// Loads previous status(station id and volume) from a /status file
 	void loadstatus() {
-		Serial.println("Loading status");
+		DBG.println("Loading status");
+
 		String buf, filepath = "/status";
 		char c;
 		if (LittleFS.exists(filepath)) {
@@ -170,7 +174,8 @@ private:
 
 	// Saves status to a /status file
 	void savestatus() {
-		Serial.println("Saving status");
+		DBG.println("Saving status");
+
 		File file = LittleFS.open("/status", "w");
 		file.print(String(volume) + "\n" + String(currentstationid));
 		file.close();
@@ -209,12 +214,16 @@ public:
 
 	// Updates volume with a set value
 	void volupdate() {
+		DBG.println("Volume update");
+
 		if (mp3 != nullptr)
 			out->SetGain((float)volume/100);
 	}
 
 	// Increases volume
 	void volup() {
+		DBG.println("Volume increase");
+
 		volume += 10;
 		if (volume > 100)
 			volume = 100;
@@ -224,6 +233,8 @@ public:
 
 	// Decreases volume
 	void voldown() {
+		DBG.println("Volume decrease");
+
 		volume -= 10;
 		if (volume < 0)
 			volume = 0;
@@ -241,7 +252,9 @@ public:
 		if (url.startsWith("https")) {
 			url = "http" + url.substring(5);
 		}
-		Serial.println("Adding station: " + name + "; " + url);
+
+		DBG.println("Adding station: " + name + "; " + url);
+
 		String filepath = "/stations";
 		File file;
 		if (LittleFS.exists(filepath)) {
@@ -256,6 +269,7 @@ public:
 
 	// Deletes a station from list
 	void deletestation(int id) {
+		DBG.println("Delete station");
 		if (id > stations.size()-1) return;
 		stations.erase(stations.begin()+id);
 		savestations();
@@ -265,19 +279,21 @@ public:
 	// Sets a station with an id for playback
 	void setstation(int id) {
 		if (id > stations.size()-1) return;
-		Serial.println("Setting station: " + String(id));
+		DBG.println("Setting station: " + String(id));
 		currentstationid = id;
 		this->play(stations[currentstationid]);
 		this->savestatus();
 	}
 
 	void prevstation() {
+		DBG.println("Previous station");
 		int id = currentstationid - 1;
 		if (id < 0) id = stations.size() - 1;
 		this->setstation(id);
 	}
 
 	void nextstation() {
+		DBG.println("Next station");
 		int id = currentstationid + 1;
 		if (id > stations.size() - 1) id = 0;
 		this->setstation(id);
