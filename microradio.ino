@@ -1,10 +1,10 @@
 #include <FS.h>
 #include <LittleFS.h>
-#include "util.h"
-#include "web.h"
-#include "player.h"
+#include "include/util.h"
+#include "include/web.h"
+#include "include/player.h"
 #ifdef BUTTONS
-#include "buttons.h"
+#include "include/buttons.h"
 #endif
 
 // Main setup sets up serial connection and LittleFS filesystem.
