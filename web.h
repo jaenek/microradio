@@ -1,5 +1,11 @@
 #include <ESP8266WiFi.h>
+#include <DNSServer.h>
 #include <ESP8266WebServer.h>
+
+const byte HTTP_CODE = 200;
+const byte DNS_PORT = 53;
+const byte TICK_TIMER = 1000;
+IPAddress APIP(172, 0, 0, 1);
 
 const String configfile = "/wifisetup";
 const String ap_ssid = "Microradio";
@@ -48,6 +54,7 @@ void loadwifisetup() {
 }
 
 // Global server class
+DNSServer dnsServer;
 ESP8266WebServer server(80);
 
 // Serves file with apriopriate mime type, doesn't serve files without extentions

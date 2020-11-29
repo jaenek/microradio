@@ -19,10 +19,13 @@ void setup() {
 	LittleFS.begin();
 
 	WiFi.mode(WIFI_AP);
+	WiFi.softAPConfig(APIP, APIP, IPAddress(255, 255, 255, 0));
 	WiFi.softAP(ap_ssid, ap_pass);
 
 	Serial.print("AP IP address: ");
-	Serial.println(WiFi.softAPIP());
+	Serial.println(APIP);
+
+	dnsServer.start(DNS_PORT, "*", APIP);
 
 	server.on("/setup", HTTP_GET, []{ servefile("/wifisetup.html"); });
 	server.on("/setup", HTTP_POST, []{ savewifisetup(server.arg("ssid"), server.arg("pass")); servefile("/wifiresponse.html"); });
@@ -35,6 +38,7 @@ void setup() {
 	loadwifisetup();
 
 	while (WiFi.status() != WL_CONNECTED) {
+		dnsServer.processNextRequest();
 		server.handleClient();
 	}
 	Serial.println("Connected");
@@ -71,6 +75,7 @@ void loop() {
 	buttonmanager->loop();
 #endif
 
+	dnsServer.processNextRequest();
 	server.handleClient();
 
 	player->loop();
